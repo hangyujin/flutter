@@ -1378,7 +1378,7 @@ class DialogRoute<T> extends RawDialogRoute<T> {
            return dialog;
          },
          barrierLabel: barrierLabel ?? MaterialLocalizations.of(context).modalBarrierDismissLabel,
-         transitionDuration: const Duration(milliseconds: 150),
+         transitionDuration: const Duration(milliseconds: 1700),
          transitionBuilder: _buildMaterialDialogTransitions,
        );
 }

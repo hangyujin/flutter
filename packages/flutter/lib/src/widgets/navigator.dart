@@ -2483,6 +2483,7 @@ class Navigator extends StatefulWidget {
   /// ```
   @optionalTypeArgs
   static void pop<T extends Object?>(BuildContext context, [ T? result ]) {
+    print(" Navigator.of(context).pop<T>(result);");
     Navigator.of(context).pop<T>(result);
   }
 
@@ -2840,6 +2841,10 @@ class _RouteEntry extends RouteTransitionRecord {
   Route<dynamic>? lastAnnouncedPreviousRoute = notAnnounced; // last argument to Route.didChangePrevious
   Route<dynamic> lastAnnouncedPoppedNextRoute = notAnnounced; // last argument to Route.didPopNext
   Route<dynamic>? lastAnnouncedNextRoute = notAnnounced; // last argument to Route.didChangeNext
+
+  String toString() {
+    return "_RouteEntry{ $currentState  $restorationId pageBased: $pageBased}";
+  }
 
   /// Restoration ID to be used for the encapsulating route when restoration is
   /// enabled for it or null if restoration cannot be enabled for it.
@@ -3527,6 +3532,7 @@ class NavigatorState extends State<Navigator> with TickerProviderStateMixin, Res
         }
         return true;
       }());
+      print("_updatePages();");
       _updatePages();
     }
 
@@ -3642,17 +3648,22 @@ class NavigatorState extends State<Navigator> with TickerProviderStateMixin, Res
     // 5. Walk the narrowed part of the old list again to records the
     //    _RouteEntry(s), as well as pageless routes, needed to be removed for
     //    transitionDelegate.
-    // 5. Walk the top of the list again, syncing the nodes and recording
+    // 6. Walk the top of the list again, syncing the nodes and recording
     //    pageless routes.
-    // 6. Use transitionDelegate for explicit decisions on how _RouteEntry(s)
+    // 7. Use transitionDelegate for explicit decisions on how _RouteEntry(s)
     //    transition in or off the screens.
-    // 7. Fill pageless routes back into the new history.
+    // 8. Fill pageless routes back into the new history.
 
     bool needsExplicitDecision = false;
     int newPagesBottom = 0;
     int oldEntriesBottom = 0;
     int newPagesTop = widget.pages.length - 1;
     int oldEntriesTop = _history.length - 1;
+    print(' oldEntriesBottom: $oldEntriesBottom oldEntriesTop: $oldEntriesTop newPagesBottom:$newPagesBottom newPagesTop: $newPagesTop');
+    print('[History]: $_history');
+    print('[NewPages]: ${widget.pages}');
+    final LocalHistory=_history;
+
 
     final List<_RouteEntry> newHistory = <_RouteEntry>[];
     final Map<_RouteEntry?, List<_RouteEntry>> pageRouteToPagelessRoutes = <_RouteEntry?, List<_RouteEntry>>{};
@@ -3660,6 +3671,7 @@ class NavigatorState extends State<Navigator> with TickerProviderStateMixin, Res
     // Updates the bottom of the list.
     _RouteEntry? previousOldPageRouteEntry;
     while (oldEntriesBottom <= oldEntriesTop) {
+      print("oldEntriesBottom = $oldEntriesBottom");
       final _RouteEntry oldEntry = _history[oldEntriesBottom];
       assert(oldEntry != null && oldEntry.currentState != _RouteLifecycle.disposed);
       // Records pageless route. The bottom most pageless routes will be
@@ -3673,11 +3685,17 @@ class NavigatorState extends State<Navigator> with TickerProviderStateMixin, Res
         oldEntriesBottom += 1;
         continue;
       }
+      // if(oldEntry.currentState==_RouteLifecycle.removing){
+      //   oldEntriesBottom += 1;
+      //   continue;
+      // }
       if (newPagesBottom > newPagesTop) {
+        print("   if (newPagesBottom > newPagesTop) break;");
         break;
       }
       final Page<dynamic> newPage = widget.pages[newPagesBottom];
       if (!oldEntry.canUpdateFrom(newPage)) {
+        print("   !oldEntry.canUpdateFrom(newPage) break;");
         break;
       }
       previousOldPageRouteEntry = oldEntry;
@@ -3686,11 +3704,13 @@ class NavigatorState extends State<Navigator> with TickerProviderStateMixin, Res
       newPagesBottom += 1;
       oldEntriesBottom += 1;
     }
-
+    print(pageRouteToPagelessRoutes);
+    
     int pagelessRoutesToSkip = 0;
     // Scans the top of the list until we found a page-based route that cannot be
     // updated.
-    while ((oldEntriesBottom <= oldEntriesTop) && (newPagesBottom <= newPagesTop)) {
+    while ((oldEntriesBottom <= oldEntriesTop) && (newPagesBottom <= newPagesTop)) {    
+      print(' oldEntriesBottom: $oldEntriesBottom oldEntriesTop: $oldEntriesTop newPagesBottom:$newPagesBottom newPagesTop: $newPagesTop');
       final _RouteEntry oldEntry = _history[oldEntriesTop];
       assert(oldEntry != null && oldEntry.currentState != _RouteLifecycle.disposed);
       if (!oldEntry.pageBased) {
@@ -3701,16 +3721,21 @@ class NavigatorState extends State<Navigator> with TickerProviderStateMixin, Res
       }
       final Page<dynamic> newPage = widget.pages[newPagesTop];
       if (!oldEntry.canUpdateFrom(newPage)) {
+        print("if (!oldEntry.canUpdateFrom(newPage)) break;");
         break;
       }
       // We found the page for all the consecutive pageless routes below. Those
       // pageless routes do not need to be skipped.
+      print("pagelessRoutesToSkip = 0;");
       pagelessRoutesToSkip = 0;
       oldEntriesTop -= 1;
       newPagesTop -= 1;
     }
+    print(' oldEntriesBottom: $oldEntriesBottom oldEntriesTop: $oldEntriesTop newPagesBottom:$newPagesBottom newPagesTop: $newPagesTop');
+    print('pagelessRoutesToSkip:$pagelessRoutesToSkip');
     // Reverts the pageless routes that cannot be updated.
     oldEntriesTop += pagelessRoutesToSkip;
+    print('oldEntriesTop:$oldEntriesTop');
 
     // Scans middle of the old entries and records the page key to old entry map.
     int oldEntriesBottomToScan = oldEntriesBottom;
@@ -3874,6 +3899,7 @@ class NavigatorState extends State<Navigator> with TickerProviderStateMixin, Res
         _history.addAll(pageRouteToPagelessRoutes[result]!);
       }
     }
+    print("New History: $_history");
     assert(() {_debugUpdatingPage = false; return true;}());
     assert(() { _debugLocked = true; return true; }());
     _flushHistoryUpdates();
@@ -4986,23 +5012,32 @@ class NavigatorState extends State<Navigator> with TickerProviderStateMixin, Res
   /// {@end-tool}
   @optionalTypeArgs
   void pop<T extends Object?>([ T? result ]) {
+    //print("void pop<T extends Object?>([ T? result ])");
     assert(!_debugLocked);
     assert(() {
       _debugLocked = true;
       return true;
     }());
     final _RouteEntry entry = _history.lastWhere(_RouteEntry.isPresentPredicate);
+    print("[????HistoryBeforePop]   $_history");
     if (entry.pageBased) {
-      if (widget.onPopPage!(entry.route, result) && entry.currentState == _RouteLifecycle.idle) {
-        // The entry may have been disposed if the pop finishes synchronously.
-        assert(entry.route._popCompleter.isCompleted);
-        entry.currentState = _RouteLifecycle.pop;
+      //print("if (entry.pageBased)");
+      if (widget.onPopPage!(entry.route, result)) {
+        //print("if (widget.onPopPage!(entry.route, result))");
+        if(entry.currentState == _RouteLifecycle.idle) {
+          //print("if(entry.currentState == _RouteLifecycle.idle) {");
+          // The entry may have been disposed if the pop finishes synchronously.
+          assert(entry.route._popCompleter.isCompleted);
+          entry.currentState = _RouteLifecycle.pop;
+        }
       }
     } else {
+      //print("if (!entry.pageBased)");
       entry.pop<T>(result);
       assert (entry.currentState == _RouteLifecycle.pop);
     }
     if (entry.currentState == _RouteLifecycle.pop) {
+      //print("entry.currentState == _RouteLifecycle.pop");
       _flushHistoryUpdates(rearrangeOverlay: false);
     }
     assert(entry.currentState == _RouteLifecycle.idle || entry.route._popCompleter.isCompleted);
@@ -5010,6 +5045,8 @@ class NavigatorState extends State<Navigator> with TickerProviderStateMixin, Res
       _debugLocked = false;
       return true;
     }());
+
+    //print("_afterNavigation(entry.route);");
     _afterNavigation(entry.route);
   }
 
