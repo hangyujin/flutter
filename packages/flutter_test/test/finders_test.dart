@@ -348,6 +348,30 @@ void main() {
       expect(find.bySemanticsIdentifier(RegExp(r'^item-')), findsNWidgets(2));
       semanticsHandle.dispose();
     });
+
+    testWidgets('finds Semantically labeled widgets by semantic value',
+        (WidgetTester tester) async {
+      final SemanticsHandle semanticsHandle = tester.ensureSemantics();
+      await tester.pumpWidget(_boilerplate(
+        Semantics(
+          value: 'value',
+          button: true,
+          child: const TextButton(
+            onPressed: null,
+            child: Text('+'),
+          ),
+        ),
+      ));
+      expect(
+        find.bySemanticsProperty(
+          'value',
+          (SemanticsNode? semantics) => semantics?.value,
+        ),
+        findsOneWidget,
+      );
+      semanticsHandle.dispose();
+    });
+
   });
 
   group('byTooltip', () {
